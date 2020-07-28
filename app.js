@@ -10,7 +10,44 @@ const User = require('./models/user');
 
 const app = express();
 
-app.use(bodyParser.json());
+/**
+ * Returns an array of event documents with detailed user information
+ *
+ * @param {number} eventIds Ids for events
+ * @return {Array} events an array of events
+ * Replacing creator and createdEvents with functions because when graphql tries to access a certain property
+ * through an incoming query it will check if it's a string or a number and give that value. Or if its a f,
+ * it will call that f and return its result.
+ * So this returns the event doc, and also everything that is returned within the getUserById f.
+ */
+const events = async eventIds => {
+  try {
+    const events = await Event.find({ _id: { $in: eventIds } }); // mongodb query $in syntax
+    return events.map(event => {
+      return { ...event._doc, creator: getUserById.bind(this, event.creator) };
+    });
+  } catch (error) {
+    throw err;
+  }
+};
+
+/**
+ * Returns user document and createdEvents based on id passed in as an argument
+ *
+ * @param {number} userId
+ * @return {object} user, createdEvents
+ */
+const getUserById = async userId => {
+  try {
+    const user = await User.findById(userId);
+    return {
+      ...user._doc,
+      createdEvents: events.bind(this, user._doc.createdEvents),
+    };
+  } catch (error) {
+    throw error;
+  }
+};
 
 app.use(
   '/graphql',
@@ -22,12 +59,14 @@ app.use(
         description: String!
         price: Float!
         date: String!
+        creator: User!
       }
 
       type User {
         _id: ID!
         email: String!
         password: String 
+        createdEvents: [Event!]
       }
       
       input EventInput {
@@ -59,9 +98,12 @@ app.use(
     rootValue: {
       events: async () => {
         try {
-          const events = await Event.find();
+          const events = await Event.find().populate('creator'); //populate allows us to grab the creator
           return events.map(event => {
-            return { ...event._doc };
+            return {
+              ...event._doc,
+              creator: getUserById.bind(this, event._doc.creator),
+            };
           });
         } catch (err) {
           throw err;
@@ -75,10 +117,14 @@ app.use(
           date: new Date(args.eventInput.date),
           creator: '5f1f6e7ad241983afc4de006',
         });
+
         let createdEvent;
         try {
           const result = await event.save();
-          createdEvent = { ...result._doc };
+          createdEvent = {
+            ...result._doc,
+            creator: getUserById.bind(this, result._doc.creator),
+          };
           const user = await User.findById('5f1f6e7ad241983afc4de006');
           if (!user) {
             throw new Error('User not found.');
