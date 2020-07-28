@@ -9,10 +9,7 @@ node_modules
 
 # Ignore files related to API keys
 .env
+nodemon.json
 
 # Ignore SASS config files
 .sass-cache
-
-nodemon.json
-
-.gitignore
