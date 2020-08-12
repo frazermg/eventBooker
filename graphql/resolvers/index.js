@@ -5,17 +5,12 @@ const User = require('../../models/user');
 
 /**
  * Returns an array of event documents with detailed user information
- *
- * @param {number} eventIds Ids for events
- * @return {Array} events an array of events
- * Replacing creator and createdEvents with functions because when graphql tries to access a certain property
- * through an incoming query it will check if it's a string or a number and give that value. Or if its a f,
- * it will call that f and return its result.
- * So this returns the event doc, and also everything that is returned within the getUserById f.
+ * @param {number} eventIds - Ids for events
+ * @return {Array} events - an array of events
  */
 const events = async eventIds => {
   try {
-    const events = await Event.find({ _id: { $in: eventIds } }); // mongodb query $in syntax
+    const events = await Event.find({ _id: { $in: eventIds } });
     return events.map(event => {
       return {
         ...event._doc,
@@ -30,7 +25,6 @@ const events = async eventIds => {
 
 /**
  * Returns user document and createdEvents based on id passed in as an argument
- *
  * @param {number} userId
  * @return {object} user, createdEvents
  */
